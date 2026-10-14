@@ -225,41 +225,25 @@ for n = 1:2:(length(x)-L+1)
 
     out = out + 1;
 end
-```
 
-Perulangan dengan langkah `2` sekaligus melakukan proses downsampling.
+Perulangan dengan langkah `2` sekaligus melakukan proses downsampling dengan faktor 2.
 
-------> Approximation
-  |
-  |
-  -------> Detail
-              ^
-              |
-             HPF
-```
+Pada setiap level DWT, sinyal diproses menggunakan dua filter:
 
-Setelah filtering dilakukan downsampling dengan faktor 2.
+- Low Pass Filter menghasilkan komponen approximation.
+- High Pass Filter menghasilkan komponen detail.
 
-Approximation dari setiap level digunakan sebagai input untuk level berikutnya.
+Approximation dari setiap level digunakan sebagai input untuk level berikutnya, sedangkan detail disimpan sebagai hasil dekomposisi pada level tersebut.
 
-```text
-ECG
- |
- v
-A1 + D1
- |
- v
-A2 + D2
- |
- v
-A3 + D3
- |
- v
-A4 + D4
- |
- v
-A5 + D5
-```
+Urutan dekomposisi yang digunakan:
+
+1. Level 1 menghasilkan A1 dan D1.
+2. A1 digunakan sebagai input level 2 untuk menghasilkan A2 dan D2.
+3. A2 digunakan sebagai input level 3 untuk menghasilkan A3 dan D3.
+4. A3 digunakan sebagai input level 4 untuk menghasilkan A4 dan D4.
+5. A4 digunakan sebagai input level 5 untuk menghasilkan A5 dan D5.
+
+Pada program ini, detail level 5 atau D5 digunakan untuk membantu mencari kandidat kompleks QRS.
 
 Bagian utama DWT manual:
 
