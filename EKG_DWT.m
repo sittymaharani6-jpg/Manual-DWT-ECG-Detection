@@ -1,22 +1,4 @@
 function EKG_DWT()
-% ==============================================================
-% EKG_DWT.m
-% DETEKSI P-Q-R-S-T ECG DENGAN DWT FROM SCRATCH
-% ==============================================================
-% Dataset contoh : PTB Diagnostic ECG Database
-% File           : s0010_re.dat
-% Sampling       : 1000 Hz
-% Lead default   : Lead I
-% Wavelet        : Daubechies db2 / D4 (4 tap)
-%
-% LPF & HPF ditulis MANUAL.
-% DWT dibuat MANUAL (filtering + downsampling 2).
-%
-% Tidak memakai:
-% dwt(), wavedec(), wfilters(), findpeaks()
-%
-% Hasil Detection = area/pulse P,Q,R,S,T, bukan marker titik.
-% ==============================================================
 
 %% =========================
 % 1. WINDOW
