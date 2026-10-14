@@ -79,9 +79,9 @@ Digunakan untuk:
 - visualisasi hasil;
 - pembuatan GUI.
 
-### MATLAB GUI
+### GUI
 
-GUI dibuat menggunakan beberapa komponen seperti:
+GUI dibuat menggunakan beberapa komponen MATLAB seperti:
 
 ```text
 uifigure
@@ -93,7 +93,7 @@ uitab
 uitabgroup
 ```
 
-GUI digunakan untuk mengatur data, lead, parameter deteksi, serta menampilkan hasil proses DWT dan PQRST.
+GUI digunakan untuk mengatur data, memilih lead, mengatur parameter deteksi, serta menampilkan hasil proses DWT dan PQRST.
 
 ### PhysioNet
 
@@ -117,11 +117,11 @@ Paper tersebut membahas:
 - penggunaan wavelet Daubechies;
 - dekomposisi wavelet untuk analisis ECG;
 - deteksi karakteristik P, Q, R, S, dan T;
-- penggunaan detail wavelet untuk membantu menemukan kompleks QRS.
+- penggunaan detail wavelet untuk membantu menentukan kompleks QRS.
 
 Pada paper digunakan dekomposisi db2 hingga 8 level.
 
-Pada program ini digunakan konsep yang sama sebagai referensi, tetapi dekomposisi dibuat manual sampai level 5.
+Pada program ini, konsep tersebut digunakan sebagai referensi, tetapi dekomposisi DWT dibuat manual sampai level 5.
 
 ---
 
@@ -144,6 +144,8 @@ h(3) = (3-sqrt(3))/(4*sqrt(2));
 h(4) = (1-sqrt(3))/(4*sqrt(2));
 ```
 
+Low Pass Filter digunakan untuk menghasilkan komponen approximation.
+
 ### High Pass Filter
 
 ```matlab
@@ -152,6 +154,8 @@ g(2) = -(3-sqrt(3))/(4*sqrt(2));
 g(3) = (3+sqrt(3))/(4*sqrt(2));
 g(4) = -(1+sqrt(3))/(4*sqrt(2));
 ```
+
+High Pass Filter digunakan untuk menghasilkan komponen detail.
 
 LPF dan HPF ditulis langsung di dalam kode tanpa menggunakan `wfilters()`.
 
@@ -187,53 +191,19 @@ clean = ecg - baseline;
 clean = clean - mean(clean);
 ```
 
-Hasilnya digunakan sebagai sinyal input untuk proses DWT.
+Hasil preprocessing digunakan sebagai sinyal input untuk proses DWT.
 
 ---
 
 ## DWT Manual
 
-Pada setiap level, sinyal diproses menggunakan dua filter.
+Pada setiap level DWT, sinyal diproses menggunakan dua filter.
 
-Low Pass Filter menghasilkan nilai approximation, sedangkan High Pass Filter menghasilkan nilai detail.
+Low Pass Filter menghasilkan komponen approximation, sedangkan High Pass Filter menghasilkan komponen detail.
 
-Setelah proses filtering, dilakukan downsampling dengan faktor 2. Approximation dari satu level digunakan kembali sebagai input untuk level berikutnya.
+Setelah proses filtering, dilakukan downsampling dengan faktor 2. Perulangan pada kode menggunakan langkah `2`, sehingga data diproses setiap dua sampel.
 
-Urutan dekomposisi yang digunakan:
-
-1. Level 1 menghasilkan A1 dan D1.
-2. A1 digunakan sebagai input level 2 dan menghasilkan A2 serta D2.
-3. A2 digunakan sebagai input level 3 dan menghasilkan A3 serta D3.
-4. A3 digunakan sebagai input level 4 dan menghasilkan A4 serta D4.
-5. A4 digunakan sebagai input level 5 dan menghasilkan A5 serta D5.
-
-Bagian utama DWT manual:
-
-```matlab
-for n = 1:2:(length(x)-L+1)
-
-    a = 0;
-    d = 0;
-
-    for k = 1:L
-        a = a + x(n+k-1)*h(k);
-        d = d + x(n+k-1)*g(k);
-    end
-
-    A(out) = a;
-    D(out) = d;
-
-    out = out + 1;
-end
-
-Perulangan dengan langkah `2` sekaligus melakukan proses downsampling dengan faktor 2.
-
-Pada setiap level DWT, sinyal diproses menggunakan dua filter:
-
-- Low Pass Filter menghasilkan komponen approximation.
-- High Pass Filter menghasilkan komponen detail.
-
-Approximation dari setiap level digunakan sebagai input untuk level berikutnya, sedangkan detail disimpan sebagai hasil dekomposisi pada level tersebut.
+Approximation dari satu level digunakan sebagai input untuk level berikutnya, sedangkan detail disimpan sebagai hasil dekomposisi pada level tersebut.
 
 Urutan dekomposisi yang digunakan:
 
@@ -243,8 +213,6 @@ Urutan dekomposisi yang digunakan:
 4. A3 digunakan sebagai input level 4 untuk menghasilkan A4 dan D4.
 5. A4 digunakan sebagai input level 5 untuk menghasilkan A5 dan D5.
 
-Pada program ini, detail level 5 atau D5 digunakan untuk membantu mencari kandidat kompleks QRS.
-
 Bagian utama DWT manual:
 
 ```matlab
@@ -265,18 +233,20 @@ for n = 1:2:(length(x)-L+1)
 end
 ```
 
-Perulangan dengan langkah `2` sekaligus melakukan proses downsampling.
+Pada program ini, detail level 5 atau D5 digunakan untuk membantu mencari kandidat kompleks QRS.
 
 ---
 
 ## Deteksi R
 
-Deteksi dimulai dari detail level 5.
+Deteksi dimulai dari detail DWT level 5.
 
 ```matlab
 d5 = D{5};
 score = abs(d5);
 ```
+
+Nilai absolut digunakan agar perubahan positif maupun negatif pada D5 tetap dapat digunakan dalam pencarian kandidat QRS.
 
 Threshold ditentukan menggunakan:
 
@@ -293,6 +263,8 @@ Proses deteksi R dilakukan dengan langkah berikut:
 5. Mengembalikan posisi kandidat ke skala sinyal ECG.
 6. Melakukan refinement pada sinyal ECG untuk menentukan posisi R.
 
+Pencarian kandidat peak dilakukan menggunakan fungsi `manualPeaks()` tanpa menggunakan `findpeaks()`.
+
 ---
 
 ## Deteksi Q dan S
@@ -308,6 +280,8 @@ Q dicari sebagai nilai minimum pada area sebelum R.
 Q(k) = a + loc - 1;
 ```
 
+Batas pencarian Q diatur menggunakan parameter `T1`.
+
 ### S
 
 S dicari sebagai nilai minimum pada area setelah R.
@@ -317,7 +291,7 @@ S dicari sebagai nilai minimum pada area setelah R.
 S(k) = a + loc - 1;
 ```
 
-Batas pencarian Q dan S diatur melalui parameter `T1` dan `T2`.
+Batas pencarian S diatur menggunakan parameter `T2`.
 
 ---
 
@@ -382,7 +356,7 @@ Bentuk kotak menunjukkan area hasil deteksi.
 
 Tinggi P, Q, R, S, dan T dibuat berbeda agar hasil lebih mudah dibedakan pada grafik.
 
-Nilai tinggi tersebut hanya untuk visualisasi dan tidak menunjukkan amplitudo sebenarnya dari gelombang ECG.
+Nilai tinggi tersebut hanya digunakan untuk visualisasi dan tidak menunjukkan amplitudo sebenarnya dari gelombang ECG.
 
 ---
 
@@ -393,6 +367,8 @@ GUI terdiri dari beberapa bagian.
 ### Prosses
 
 Menampilkan sinyal ECG yang sedang dianalisis.
+
+Pada bagian kiri terdapat pengaturan data, jumlah sampel, sampling frequency, lead, dan parameter deteksi.
 
 ### Filter Bank
 
@@ -416,13 +392,23 @@ S
 T
 ```
 
-Tampilan Detection dibuat lebih dekat pada satu beat agar posisi setiap gelombang lebih mudah dilihat.
+Hasil PQRST ditampilkan dalam bentuk area atau pulse.
 
-### Mallat, Zero-cross, dan Gradient
+Tampilan Detection dibuat lebih dekat pada satu beat agar posisi masing-masing gelombang lebih mudah dilihat.
 
-Tab ini tersedia pada GUI sebagai bagian dari tampilan.
+### Mallat
 
-Pada implementasi saat ini, Zero-cross dan Gradient tidak digunakan dalam proses utama deteksi PQRST.
+Tab Mallat tersedia sebagai bagian dari tampilan GUI.
+
+### Zero-cross
+
+Tab Zero-cross tersedia pada GUI, tetapi tidak digunakan dalam proses utama deteksi PQRST.
+
+### Gradient
+
+Tab Gradient tersedia pada GUI, tetapi tidak digunakan dalam proses utama deteksi PQRST.
+
+Proses utama deteksi menggunakan DWT dan detail level 5 sebagai dasar pencarian kandidat kompleks QRS.
 
 ---
 
@@ -453,8 +439,9 @@ Setelah GUI muncul:
 2. Pilih `s0010_re.dat`.
 3. Pilih lead ECG yang ingin digunakan.
 4. Atur jumlah data jika diperlukan.
-5. Klik `Action`.
-6. Buka tab `Detection` untuk melihat hasil PQRST.
+5. Atur parameter deteksi jika diperlukan.
+6. Klik `Action`.
+7. Buka tab `Detection` untuk melihat hasil PQRST.
 
 ---
 
@@ -469,18 +456,19 @@ Program menghasilkan:
 | HPF | Koefisien High Pass Filter |
 | D1-D5 | Detail hasil dekomposisi DWT |
 | R | Hasil deteksi R peak |
-| Q dan S | Titik di sekitar kompleks QRS |
-| P | Gelombang sebelum QRS |
-| T | Gelombang setelah QRS |
+| Q | Hasil deteksi Q sebelum R |
+| S | Hasil deteksi S setelah R |
+| P | Hasil deteksi P sebelum kompleks QRS |
+| T | Hasil deteksi T setelah kompleks QRS |
 | Detection | Visualisasi area PQRST |
 
 ---
 
 ## Catatan
 
-Program menggunakan DWT manual sebagai dasar deteksi kompleks QRS.
+Program menggunakan DWT manual sebagai dasar pencarian kandidat kompleks QRS.
 
-Posisi R menjadi referensi utama untuk menentukan P, Q, S, dan T.
+Posisi R menjadi referensi utama untuk menentukan posisi Q, S, P, dan T.
 
 Parameter threshold dan window pencarian masih dapat dikembangkan agar lebih adaptif terhadap variasi sinyal ECG dan lead yang berbeda.
 
